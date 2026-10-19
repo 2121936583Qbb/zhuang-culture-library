@@ -32,7 +32,7 @@
           </div>
           <div class="field">
             <label>文件大小</label>
-            <input v-model="form.size" class="input" placeholder="例如：24.6 MB" />
+            <input v-model="form.size" class="input" placeholder="选文件后自动填写" />
           </div>
           <div class="field">
             <label>采集人</label>
@@ -42,9 +42,27 @@
             <label>素材描述</label>
             <textarea v-model="form.desc" class="textarea" placeholder="简要描述素材内容、文化背景等"></textarea>
           </div>
+          <div class="field full">
+            <label>素材文件（可真实选择本地图片/音频/视频，仅本地预览）</label>
+            <div class="upload-box">
+              <input ref="fileInput" type="file" class="hidden-input" accept="image/*,audio/*,video/*" multiple @change="onFileChange" />
+              <button type="button" class="btn btn-outline" @click="fileInput.click()">📎 选择文件</button>
+              <span class="muted">支持多选；图片会显示缩略图预览</span>
+            </div>
+            <div v-if="files.length" class="file-list">
+              <div v-for="(f, i) in files" :key="i" class="file-chip">
+                <img v-if="f.preview" :src="f.preview" class="file-thumb" alt="" />
+                <span v-else class="file-ico">{{ f.icon }}</span>
+                <div class="file-info">
+                  <div class="file-name">{{ f.name }}</div>
+                  <div class="file-size">{{ f.sizeText }}</div>
+                </div>
+                <button class="file-del" @click="removeFile(i)" title="移除">✕</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="form-actions">
-          <button class="btn btn-outline" @click="mockUpload">📎 模拟上传文件</button>
           <button class="btn btn-brown" @click="mockAnalyze">🧠 AI 智能分析</button>
           <button class="btn btn-primary" @click="submit">✅ 提交入库</button>
         </div>
@@ -72,7 +90,12 @@
           <tbody>
             <tr v-for="m in filtered" :key="m.id" @click="openDetail(m)">
               <td class="mono muted">{{ m.id }}</td>
-              <td><b>{{ m.name }}</b></td>
+              <td>
+                <div class="name-cell">
+                  <img v-if="m.cover" :src="m.cover" class="row-thumb" alt="" />
+                  <b>{{ m.name }}</b>
+                </div>
+              </td>
               <td>{{ catIcon(m.category) }} {{ catLabel(m.category) }}</td>
               <td>{{ m.type }}</td>
               <td class="muted">{{ m.size }}</td>
@@ -91,6 +114,9 @@
     <!-- 详情弹窗 -->
     <Modal v-model="detail.show" :title="detail.data?.name || '素材详情'" width="620px">
       <div v-if="detail.data" class="detail">
+        <div v-if="detail.data.cover" class="detail-cover">
+          <img :src="detail.data.cover" alt="素材预览" />
+        </div>
         <div class="detail-row"><span>编号</span><b class="mono">{{ detail.data.id }}</b></div>
         <div class="detail-row"><span>分类</span><b>{{ catIcon(detail.data.category) }} {{ catLabel(detail.data.category) }}</b></div>
         <div class="detail-row"><span>类型 / 大小</span><b>{{ detail.data.type }} · {{ detail.data.size }}</b></div>
@@ -140,6 +166,9 @@ const form = reactive({ name: '', category: 'pattern', type: '图像', location:
 const keyword = ref('')
 const filterCat = ref('')
 
+const fileInput = ref(null)
+const files = ref([])
+
 const detail = reactive({ show: false, data: null })
 const analyze = reactive({ show: false, text: '', tags: [] })
 
@@ -168,9 +197,44 @@ function nowStr() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-function mockUpload() {
-  if (!form.name) return toast('请先填写素材名称', 'warning')
-  toast(`文件「${form.name}」模拟上传完成`, 'success')
+function formatSize(bytes) {
+  if (!bytes && bytes !== 0) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+}
+
+function iconFor(f) {
+  const t = (f.type || '').toLowerCase()
+  if (t.startsWith('image/')) return '🖼️'
+  if (t.startsWith('audio/')) return '🎵'
+  if (t.startsWith('video/')) return '🎬'
+  return '📄'
+}
+
+function onFileChange(e) {
+  const picked = Array.from(e.target.files || [])
+  if (!picked.length) return
+  picked.forEach((f) => {
+    const item = { name: f.name, size: f.size, sizeText: formatSize(f.size), type: f.type, preview: null, icon: iconFor(f) }
+    files.value.push(item)
+    if ((f.type || '').startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = () => { item.preview = reader.result }
+      reader.readAsDataURL(f)
+    }
+  })
+  if (!form.size) form.size = files.value.map((f) => f.sizeText).join('、')
+  const t = (files.value[0] && files.value[0].type) || ''
+  if (t.startsWith('image/')) form.type = '图像'
+  else if (t.startsWith('audio/')) form.type = '音频'
+  else if (t.startsWith('video/')) form.type = '视频'
+  toast(`已选择 ${picked.length} 个文件（本地预览，不入库到服务器）`, 'success')
+  e.target.value = ''
+}
+
+function removeFile(i) {
+  files.value.splice(i, 1)
 }
 
 function mockAnalyze() {
@@ -195,10 +259,12 @@ function submit() {
     time: nowStr(),
     status: '已入库',
     aiScore: 85 + Math.floor(Math.random() * 14),
-    tags: [cat, '新入库']
+    tags: [cat, '新入库'],
+    cover: files.value.find((f) => f.preview)?.preview || null
   })
   toast(`素材「${form.name}」已入库，编号 ${id}`, 'success')
   form.name = ''; form.desc = ''; form.location = ''; form.size = ''; form.author = ''
+  files.value = []
 }
 
 function openDetail(m) {
@@ -218,6 +284,32 @@ function openDetail(m) {
 .table-wrap { overflow-x: auto; }
 .score { color: var(--c-gold); font-weight: 700; }
 .empty { text-align: center; color: var(--c-ink-light); padding: 30px 0 !important; }
+
+.hidden-input { display: none; }
+.upload-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.file-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.file-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: 8px 10px;
+}
+.file-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--c-border); }
+.file-ico {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; background: rgba(56,43,107,.06); border-radius: 8px;
+}
+.file-info { display: flex; flex-direction: column; gap: 2px; max-width: 200px; }
+.file-name { font-size: 13px; color: var(--c-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { font-size: 12px; color: var(--c-ink-light); }
+.file-del {
+  width: 22px; height: 22px; border-radius: 6px; flex: 0 0 22px;
+  background: rgba(180,83,63,.1); color: var(--c-danger); font-size: 12px;
+}
+.file-del:hover { background: rgba(180,83,63,.2); }
+
+.name-cell { display: flex; align-items: center; gap: 8px; }
+.row-thumb { width: 30px; height: 30px; object-fit: cover; border-radius: 6px; border: 1px solid var(--c-border); flex: 0 0 30px; }
+.detail-cover { margin-bottom: 14px; border-radius: 10px; overflow: hidden; border: 1px solid var(--c-border); }
+.detail-cover img { display: block; width: 100%; max-height: 260px; object-fit: cover; }
 
 .detail-row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dashed #eee2cc; font-size: 14px; }
 .detail-row span { width: 90px; color: var(--c-ink-light); flex: 0 0 90px; }
