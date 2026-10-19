@@ -1,0 +1,29 @@
+{
+  "name": "zhuang-culture-library",
+  "productName": "壮族文化数字资源库",
+  "version": "1.0.0",
+  "description": "AI驱动的壮族文化数字资源库 - 本地离线桌面演示系统",
+  "main": "electron/main.js",
+  "author": "壮族文化数字资源库项目组",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron . --dev\"",
+    "build": "vite build",
+    "pack:dir": "npm run build && electron-builder --dir",
+    "build:win": "npm run build && electron-builder --win portable --x64"
+  },
+  "dependencies": {
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "concurrently": "^8.2.2",
+    "electron": "^31.2.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.3.3",
+    "wait-on": "^7.2.0"
+  }
+}

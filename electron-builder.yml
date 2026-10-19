@@ -1,0 +1,35 @@
+# ============================================================
+# electron-builder 打包配置
+# 目标：Windows 单文件便携版 exe（无需安装、双击即用、自带依赖）
+# ============================================================
+appId: com.zhuang.culture.resource.library
+productName: 壮族文化数字资源库
+copyright: Copyright © 2025 壮族文化数字资源库项目组
+
+directories:
+  output: release              # 打包产物输出目录
+  buildResources: build        # 图标等构建资源目录（可选，缺省用默认图标）
+
+# 只打包以下内容（减小体积）
+files:
+  - dist/**
+  - electron/**
+  - package.json
+
+asar: true                     # 源码打包进 app.asar
+compression: normal
+
+win:
+  target:
+    - target: portable         # 关键：portable = 单文件便携 exe
+      arch:
+        - x64
+  artifactName: ${productName}-v${version}-便携版.exe
+
+# portable 目标下生成单一 .exe（把运行时解压到临时目录，用户无需安装）
+portable:
+  artifactName: ${productName}-v${version}-便携版.exe
+
+# 国内镜像加速 Electron 二进制下载（解决 GitHub 下载慢/失败问题）
+electronDownload:
+  mirror: https://npmmirror.com/mirrors/electron/
