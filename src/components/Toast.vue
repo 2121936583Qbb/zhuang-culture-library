@@ -1,24 +1,43 @@
 <template>
-  <Teleport to="body">
-    <div v-if="state.visible" class="toast-wrap">
-      <div class="toast" :class="`toast-${state.type}`">
-        <span>{{ icon }}</span>
-        <span>{{ state.message }}</span>
-      </div>
-    </div>
-  </Teleport>
+  <div v-if="state.visible" :class="toastClass">
+    {{ state.message }}
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { state } from '../utils/toast.js'
+import { useToast } from '../utils/toast.js'
+const { state } = useToast()
 
-const icon = computed(() => {
-  switch (state.type) {
-    case 'success': return '✅'
-    case 'warning': return '⚠️'
-    case 'error': return '❌'
-    default: return '💡'
-  }
+const toastClass = computed(() => {
+  return [
+    'toast',
+    `toast-${state.type}`
+  ]
 })
 </script>
+
+<style scoped>
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 6px;
+  color: #fff;
+  z-index: 9999;
+}
+.toast-info {
+  background: #409eff;
+}
+.toast-success {
+  background: #67c23a;
+}
+.toast-warning {
+  background: #e6a23c;
+}
+.toast-error {
+  background: #f56c6c;
+}
+</style>
