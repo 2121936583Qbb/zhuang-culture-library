@@ -19,8 +19,9 @@
 
     <div class="grid model-grid">
       <div v-for="m in filtered" :key="m.id" class="zhuang-card model-card" @click="open(m)">
-        <div class="model-preview" :style="{ background: `linear-gradient(135deg, ${m.color[0]}, ${m.color[1]})` }">
-          <span class="model-preview-icon">{{ catIcon(m.category) }}</span>
+        <div class="model-preview" :style="m.thumbnail ? {} : { background: `linear-gradient(135deg, ${m.color[0]}, ${m.color[1]})` }">
+          <img v-if="m.thumbnail" :src="m.thumbnail" class="model-thumb" alt="" />
+          <span v-else class="model-preview-icon">{{ catIcon(m.category) }}</span>
           <span class="badge model-status" :class="m.status === '已发布' ? 'badge-success' : 'badge-warning'">{{ m.status }}</span>
         </div>
         <div class="card-body">
@@ -57,6 +58,7 @@
       </div>
       <template #footer>
         <button class="btn btn-outline" @click="paused = !paused">{{ paused ? '▶ 继续旋转' : '⏸ 暂停旋转' }}</button>
+        <button class="btn btn-outline" @click="toggleStatus">{{ view.data.status === '已发布' ? '⏬ 标记为处理中' : '✅ 标记为已发布' }}</button>
         <button class="btn btn-primary" @click="toast('模型操作成功（模拟）', 'success')">🔄 旋转视角</button>
       </template>
     </Modal>
@@ -67,20 +69,28 @@
 import { ref, reactive, computed } from 'vue'
 import Modal from '../components/Modal.vue'
 import { toast } from '../utils/toast.js'
-import { categories, catLabel, catIcon, models3d } from '../data/mock.js'
+import { categories, catLabel, catIcon } from '../data/mock.js'
+import { models, updateModelStatus } from '../data/store.js'
 
 const filterCat = ref('')
 const view = reactive({ show: false, data: null })
 const paused = ref(false)
 
 const filtered = computed(() =>
-  filterCat.value ? models3d.filter((m) => m.category === filterCat.value) : models3d
+  filterCat.value ? models.filter((m) => m.category === filterCat.value) : models
 )
 
 function open(m) {
   view.data = m
   paused.value = false
   view.show = true
+}
+
+function toggleStatus() {
+  if (!view.data) return
+  const next = view.data.status === '已发布' ? '处理中' : '已发布'
+  updateModelStatus(view.data.id, next)
+  toast(`模型已标记为「${next}」`, 'success')
 }
 </script>
 
@@ -99,6 +109,7 @@ function open(m) {
   height: 130px; position: relative; display: flex; align-items: center; justify-content: center;
 }
 .model-preview-icon { font-size: 52px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
+.model-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .model-status { position: absolute; top: 12px; right: 12px; }
 .model-name { font-size: 16px; color: var(--c-primary); margin-bottom: 6px; }
 .model-meta { font-size: 13px; color: var(--c-ink-light); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }

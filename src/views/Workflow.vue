@@ -101,7 +101,7 @@
           <button class="btn btn-gold" :disabled="!modeled || storing" @click="storeItem">
             {{ storing ? '入库中…' : '✅ 确认入库' }}
           </button>
-          <div v-if="stored" class="stored-tip">🎉 已成功入库，可在下方「应用」与首页查看</div>
+          <div v-if="stored" class="stored-tip">🎉 已成功入库，可前往三维模型管理、AR教学数据页面查看</div>
         </div>
       </div>
     </div>
@@ -137,7 +137,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { toast } from '../utils/toast.js'
-import { library, libraryCategories, libraryCatLabel, libraryCatIcon, addToLibrary, typeToLibrary } from '../data/store.js'
+import { library, libraryCategories, libraryCatLabel, libraryCatIcon, addToLibrary, addModel, addArMaterial, typeToLibrary } from '../data/store.js'
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
@@ -407,6 +407,46 @@ function exportGLB() {
   }, { binary: true })
 }
 
+// ---------- 入库辅助 ----------
+function makeThumbnail(img, maxW = 240) {
+  try {
+    const w = maxW
+    const h = Math.round((img.naturalHeight || 1) * (maxW / (img.naturalWidth || 1)))
+    const c = document.createElement('canvas')
+    c.width = w
+    c.height = h
+    c.getContext('2d').drawImage(img, 0, 0, w, h)
+    return c.toDataURL('image/jpeg', 0.82)
+  } catch (e) {
+    return ''
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return '1.0 MB'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+}
+
+const catColors = {
+  language: ['#382b6b', '#6a58a8'],
+  song: ['#b4533f', '#EFD8B9'],
+  pattern: ['#865F50', '#c8a254'],
+  architecture: ['#4d3b8a', '#865F50'],
+  festival: ['#b4533f', '#c8a254'],
+  craft: ['#2a2052', '#865F50']
+}
+
+const subjectMap = {
+  language: '壮语启蒙',
+  song: '山歌传唱',
+  pattern: '纹样认知',
+  architecture: '建筑形制',
+  festival: '节庆体验',
+  craft: '传统技艺'
+}
+
 // ---------- 入库 ----------
 async function storeItem() {
   if (!modeled.value) { toast('请先完成建模', 'warning'); return }
@@ -414,19 +454,53 @@ async function storeItem() {
   storing.value = true
   toast('入库中…', 'info')
   await delay(1200)
+  const name = matName.value.trim()
+  const cat = matCategory.value
+  const typeLabel = analysis.value ? analysis.value.typeLabel : ''
+  const thumbnail = makeThumbnail(imageEl.value)
+  const sizeText = formatFileSize((imageDataUrl.value || '').length * 0.75)
+
+  // 1) 资源库（供首页 / 看板）
   addToLibrary({
-    name: matName.value.trim(),
-    category: matCategory.value,
-    typeLabel: analysis.value ? analysis.value.typeLabel : '',
+    name,
+    category: cat,
+    typeLabel,
     image: imageDataUrl.value,
     palette: analysis.value ? analysis.value.palette : [],
     tags: analysis.value ? analysis.value.tags : [],
     precision: '50%',
     model: { format: 'GLB/GLTF', faces: 6400, method: '高度场浮雕重建' }
   })
+
+  // 2) 三维模型库（供三维模型管理页）
+  addModel({
+    id: '3D-' + Date.now(),
+    name,
+    category: cat,
+    format: '.glb',
+    faces: '6,400',
+    size: sizeText,
+    quality: 85 + Math.floor(Math.random() * 13),
+    status: '处理中',
+    color: catColors[cat] || ['#382b6b', '#865F50'],
+    thumbnail
+  })
+
+  // 3) AR 教学素材库（供 AR 教学数据页）
+  addArMaterial({
+    id: 'AR-' + Date.now(),
+    name,
+    category: cat,
+    arType: '图像识别',
+    target: '1 张',
+    status: '内测中',
+    subject: subjectMap[cat] || typeLabel,
+    thumbnail
+  })
+
   storing.value = false
   stored.value = true
-  toast('入库成功 ✓', 'success')
+  toast('素材与模型已成功入库，可前往三维模型管理、AR教学数据页面查看', 'success')
 }
 
 // ---------- 应用 ----------

@@ -1,5 +1,6 @@
-const { app, BrowserWindow, shell } = require('electron')
+const { app, BrowserWindow, shell, ipcMain } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
 // 开发模式：命令行带 --dev 或存在 VITE_DEV_SERVER_URL 时加载 vite 开发服务器
 const isDev = process.argv.includes('--dev') || !!process.env.VITE_DEV_SERVER_URL
@@ -35,6 +36,28 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // 本地持久化：模型 / AR 素材数据写入 userData/<key>.json（重启不丢）
+  ipcMain.handle('store:load', (event, key) => {
+    try {
+      const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, '')
+      const p = path.join(app.getPath('userData'), safe + '.json')
+      return JSON.parse(fs.readFileSync(p, 'utf-8'))
+    } catch (e) {
+      return null
+    }
+  })
+
+  ipcMain.handle('store:save', (event, key, data) => {
+    try {
+      const safe = String(key).replace(/[^a-zA-Z0-9_-]/g, '')
+      const p = path.join(app.getPath('userData'), safe + '.json')
+      fs.writeFileSync(p, JSON.stringify(data), 'utf-8')
+      return true
+    } catch (e) {
+      return false
+    }
+  })
+
   createWindow()
 
   app.on('activate', () => {

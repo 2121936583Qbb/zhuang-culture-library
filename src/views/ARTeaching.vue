@@ -13,9 +13,10 @@
     </div>
 
     <div class="grid ar-grid">
-      <div v-for="r in arResources" :key="r.id" class="zhuang-card ar-card">
-        <div class="ar-cover" :style="{ background: cover(r.category) }">
-          <span class="ar-cover-icon">{{ catIcon(r.category) }}</span>
+      <div v-for="r in arMaterials" :key="r.id" class="zhuang-card ar-card">
+        <div class="ar-cover" :style="r.thumbnail ? {} : { background: cover(r.category) }">
+          <img v-if="r.thumbnail" :src="r.thumbnail" class="ar-thumb" alt="" />
+          <span v-else class="ar-cover-icon">{{ catIcon(r.category) }}</span>
           <span class="badge ar-status" :class="r.status === '已发布' ? 'badge-success' : 'badge-warning'">{{ r.status }}</span>
         </div>
         <div class="card-body">
@@ -28,6 +29,7 @@
           </div>
           <div class="ar-actions">
             <button class="btn btn-brown btn-sm" @click="preview(r)">🥽 AR 预览</button>
+            <button class="btn btn-outline btn-sm" @click="toggleStatus(r)">{{ r.status === '已发布' ? '⏬ 内测' : '✅ 发布' }}</button>
             <button class="btn btn-outline btn-sm" @click="toast(`已同步「${r.name}」到教学端（模拟）`, 'success')">📤 同步</button>
           </div>
         </div>
@@ -63,7 +65,8 @@
 import { reactive } from 'vue'
 import Modal from '../components/Modal.vue'
 import { toast } from '../utils/toast.js'
-import { arResources, catIcon } from '../data/mock.js'
+import { catIcon } from '../data/mock.js'
+import { arMaterials, updateArStatus } from '../data/store.js'
 
 const view = reactive({ show: false, data: null })
 
@@ -77,6 +80,12 @@ const coverMap = {
 function cover(c) { return coverMap[c] || coverMap.pattern }
 
 function preview(r) { view.data = r; view.show = true }
+
+function toggleStatus(r) {
+  const next = r.status === '已发布' ? '内测中' : '已发布'
+  updateArStatus(r.id, next)
+  toast(`AR 素材「${r.name}」已标记为「${next}」`, 'success')
+}
 </script>
 
 <style scoped>
@@ -85,6 +94,7 @@ function preview(r) { view.data = r; view.show = true }
 .ar-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .ar-cover { height: 120px; position: relative; display: flex; align-items: center; justify-content: center; }
 .ar-cover-icon { font-size: 52px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
+.ar-thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ar-status { position: absolute; top: 12px; right: 12px; }
 .ar-name { font-size: 16px; color: var(--c-primary); margin-bottom: 4px; }
 .ar-subject { font-size: 13px; color: var(--c-brown); margin-bottom: 12px; }
