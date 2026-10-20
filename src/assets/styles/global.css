@@ -14,8 +14,9 @@
   --c-beige-light: #f8ecda;
   --c-beige-dark: #dcbf96;
   --c-gold: #c8a254;
-  --c-ink: #2c2542;
-  --c-ink-light: #6d6584;
+  --c-title: #5a3c2f;
+  --c-ink: #1c1630;
+  --c-ink-light: #4a425f;
   --c-bg: #f5eee2;
   --c-card: #fffdf7;
   --c-border: #e7d8c0;
@@ -134,7 +135,7 @@ a { text-decoration: none; color: inherit; }
 /* ---------- 通用布局辅助 ---------- */
 .page { padding: 24px 28px; height: 100%; overflow-y: auto; }
 .page-head { margin-bottom: 20px; }
-.page-title { font-size: 22px; font-weight: 700; color: var(--c-primary); display: flex; align-items: center; gap: 10px; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--c-title); display: flex; align-items: center; gap: 10px; }
 .page-sub { font-size: 13px; color: var(--c-ink-light); margin-top: 6px; }
 .grid { display: grid; gap: 16px; }
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }

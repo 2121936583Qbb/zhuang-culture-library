@@ -35,6 +35,7 @@ const route = useRoute()
 
 const items = [
   { path: '/', label: '首页', icon: '🏠' },
+  { path: '/workflow', label: 'AI智能入库', icon: '🤖' },
   { path: '/material', label: '文化素材入库', icon: '📥' },
   { path: '/model3d', label: '三维模型管理', icon: '🧊' },
   { path: '/dna', label: '文化DNA证书', icon: '🧬' },

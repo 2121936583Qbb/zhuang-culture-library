@@ -274,7 +274,7 @@ function openDetail(m) {
 </script>
 
 <style scoped>
-.form-title { font-size: 16px; color: var(--c-primary); margin-bottom: 16px; }
+.form-title { font-size: 16px; color: var(--c-title); margin-bottom: 16px; }
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
 .form-grid .full { grid-column: 1 / -1; }
 .form-actions { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
@@ -285,6 +285,7 @@ function openDetail(m) {
 .score { color: var(--c-gold); font-weight: 700; }
 .empty { text-align: center; color: var(--c-ink-light); padding: 30px 0 !important; }
 
+/* 文件上传 */
 .hidden-input { display: none; }
 .upload-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .file-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }

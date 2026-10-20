@@ -93,6 +93,28 @@
           </ul>
         </div>
       </div>
+
+      <!-- 资源库成果（应用环节） -->
+      <div class="zhuang-card span2">
+        <div class="card-body">
+          <h3 class="dash-title">📦 资源库成果</h3>
+          <div class="lib-count-row">
+            <div class="lib-count"><b>{{ library.length }}</b><span>本会话入库</span></div>
+            <div class="lib-count"><b>{{ library.filter(i => i.category === 'pattern').length }}</b><span>纹样素材</span></div>
+            <div class="lib-count"><b>{{ library.filter(i => i.category === 'architecture').length }}</b><span>建筑数据</span></div>
+          </div>
+          <ul v-if="library.length" class="activity">
+            <li v-for="it in library.slice(0, 5)" :key="it.id">
+              <span class="activity-dot" style="background:#c8a254"></span>
+              <div class="activity-body">
+                <p>{{ it.name }}（{{ libraryCatLabel(it.category) }}）</p>
+                <span>{{ it.time }} · {{ it.typeLabel }} · 建模精准度 +50%</span>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="progress-note">暂无入库资源，前往「AI智能入库」完成采集→建模→入库</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -100,6 +122,7 @@
 <script setup>
 import { computed } from 'vue'
 import { metrics, categoryDistribution, monthlyTrend, modelStatus, recentActivities } from '../data/mock.js'
+import { library, libraryCatLabel } from '../data/store.js'
 import { toast } from '../utils/toast.js'
 
 const kpis = metrics
@@ -149,7 +172,8 @@ function activityColor(t) {
 .kpi-trend { position: absolute; top: 6px; right: 10px; font-size: 11px; font-weight: 700; color: var(--c-success); }
 
 .dash-grid { grid-template-columns: 3fr 2fr; }
-.dash-title { font-size: 15px; color: var(--c-primary); margin-bottom: 16px; }
+.span2 { grid-column: 1 / -1; }
+.dash-title { font-size: 15px; color: var(--c-title); margin-bottom: 16px; }
 
 /* 柱状图 */
 .bar-chart { display: flex; align-items: flex-end; gap: 18px; height: 240px; padding: 10px 6px 0; }
@@ -195,6 +219,11 @@ function activityColor(t) {
 .activity-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex: 0 0 10px; }
 .activity-body p { font-size: 13px; color: var(--c-ink); }
 .activity-body span { font-size: 12px; color: var(--c-ink-light); }
+
+.lib-count-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.lib-count { flex: 1; background: rgba(56,43,107,.05); border-radius: 10px; padding: 12px; text-align: center; }
+.lib-count b { font-size: 22px; color: var(--c-brown-dark); display: block; }
+.lib-count span { font-size: 12px; color: var(--c-ink-light); }
 
 @media (max-width: 1200px) {
   .kpi-row { grid-template-columns: repeat(3, 1fr); }

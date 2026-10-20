@@ -6,6 +6,7 @@ import DNACertificate from '../views/DNACertificate.vue'
 import ARTeaching from '../views/ARTeaching.vue'
 import VRGame from '../views/VRGame.vue'
 import Statistics from '../views/Statistics.vue'
+import Workflow from '../views/Workflow.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home, meta: { title: '首页' } },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/dna', name: 'dna', component: DNACertificate, meta: { title: '文化DNA证书' } },
   { path: '/ar', name: 'ar', component: ARTeaching, meta: { title: 'AR教学数据' } },
   { path: '/vr', name: 'vr', component: VRGame, meta: { title: 'VR游戏资源管理' } },
+  { path: '/workflow', name: 'workflow', component: Workflow, meta: { title: 'AI智能采集流水线' } },
   { path: '/stats', name: 'stats', component: Statistics, meta: { title: '数据统计看板' } }
 ]
 

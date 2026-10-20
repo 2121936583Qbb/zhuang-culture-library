@@ -21,7 +21,7 @@
         </div>
 
         <div class="hero-actions">
-          <button class="btn btn-gold" @click="go('/material')">🛰️ 立即体验入库</button>
+          <button class="btn btn-gold" @click="go('/workflow')">🛰️ 立即体验入库</button>
           <button class="btn btn-ghost hero-ghost" @click="go('/stats')">📊 查看数据看板</button>
         </div>
       </div>
@@ -57,6 +57,21 @@
       </div>
     </section>
 
+    <!-- ===== 最新入库资源（应用环节） ===== -->
+    <section v-if="library.length" class="zhuang-card recent-card">
+      <div class="card-body">
+        <h2 class="section-title"><span class="zhuang-diamond"></span>最新入库资源</h2>
+        <p class="section-sub">来自 AI 智能采集流水线的项目成果，点击查看/预览</p>
+        <div class="recent-grid">
+          <div v-for="it in library.slice(0, 6)" :key="it.id" class="recent-item" @click="go('/workflow')">
+            <img :src="it.image" class="recent-thumb" alt="" />
+            <div class="recent-name">{{ it.name }}</div>
+            <div class="recent-meta">{{ it.typeLabel }} · {{ it.id }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="divider-dots">◆ ◆ ◆ ◆ ◆</div>
     <p class="home-foot">本项目为本地离线演示系统 · 所有数据均为 Mock 模拟 · 无需联网 · 无需后端</p>
   </div>
@@ -66,6 +81,7 @@
 import { useRouter } from 'vue-router'
 import { toast } from '../utils/toast.js'
 import { techTag, slogan, heroFeatures, workflow, posterMetrics } from '../data/mock.js'
+import { library } from '../data/store.js'
 
 const router = useRouter()
 function go(path) { router.push(path) }
@@ -120,7 +136,7 @@ function formatNum(n) { return n.toLocaleString('zh-CN') }
 
 /* 流程 */
 .flow-card { margin-bottom: 20px; }
-.section-title { font-size: 18px; color: var(--c-primary); display: flex; align-items: center; margin-bottom: 6px; }
+.section-title { font-size: 18px; color: var(--c-title); display: flex; align-items: center; margin-bottom: 6px; }
 .section-sub { font-size: 13px; color: var(--c-ink-light); margin-bottom: 20px; }
 .flow { display: flex; align-items: stretch; }
 .flow-node {
@@ -151,9 +167,19 @@ function formatNum(n) { return n.toLocaleString('zh-CN') }
 
 .home-foot { text-align: center; font-size: 12px; color: var(--c-ink-light); margin-top: 10px; }
 
+/* 最新入库资源 */
+.recent-card { margin-bottom: 20px; }
+.recent-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.recent-item { cursor: pointer; background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: 10px; transition: all .16s; }
+.recent-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--c-gold); }
+.recent-thumb { width: 100%; height: 74px; object-fit: cover; border-radius: 8px; border: 1px solid var(--c-border); display: block; }
+.recent-name { font-size: 13px; font-weight: 700; color: var(--c-ink); margin-top: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-meta { font-size: 11px; color: var(--c-ink-light); margin-top: 3px; }
+
 @media (max-width: 1100px) {
   .hero-features { grid-template-columns: repeat(2, 1fr); }
   .metrics { grid-template-columns: repeat(2, 1fr); }
+  .recent-grid { grid-template-columns: repeat(3, 1fr); }
   .flow { flex-wrap: wrap; }
   .flow-arrow { display: none; }
   .flow-node { flex: 1 1 30%; margin: 4px; }
