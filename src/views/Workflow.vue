@@ -22,15 +22,19 @@
         <div class="card-body">
           <h3 class="card-title">📷 ① 采集</h3>
           <p class="card-sub">上传壮族建筑、服饰纹样照片（JPG / PNG）</p>
-          <input ref="fileInput" type="file" class="hidden-input" accept="image/jpeg,image/png" @change="onPick" />
+          <input ref="fileInput" type="file" class="hidden-input" accept="image/jpeg,image/png" multiple @change="onPick" />
           <div v-if="!uploaded" class="dropzone" @click="fileInput.click()">
             <div class="dz-icon">🖼️</div>
-            <div class="dz-text">点击选择图片</div>
-            <div class="dz-hint">支持 jpg / png，本地离线处理</div>
+            <div class="dz-text">点击选择图片（可多选）</div>
+            <div class="dz-hint">支持 jpg / png，可一次选多张，本地离线处理</div>
           </div>
           <div v-else class="uploaded-box">
             <img :src="imageDataUrl" class="uploaded-img" alt="已上传图片" />
             <button class="btn btn-outline btn-sm" @click="fileInput.click()">🔁 重新选择</button>
+            <span v-if="pendingImages.length > 1" class="muted">已选 {{ pendingImages.length }} 张，入库时每张各生成一个模型</span>
+          </div>
+          <div v-if="pendingImages.length > 1" class="thumb-strip">
+            <img v-for="(p, i) in pendingImages" :key="i" :src="p.dataUrl" class="strip-thumb" :class="{ cur: i === 0 }" :title="p.name" alt="" />
           </div>
         </div>
       </div>
@@ -161,6 +165,7 @@ const fileInput = ref(null)
 const viewerEl = ref(null)
 const imageDataUrl = ref('')
 const imageEl = ref(null)
+const pendingImages = ref([])
 
 const uploaded = ref(false)
 const analyzing = ref(false)
@@ -192,29 +197,38 @@ function delay(ms) { return new Promise((r) => setTimeout(r, ms)) }
 
 // ---------- 采集 ----------
 function onPick(e) {
-  const f = e.target.files && e.target.files[0]
+  const files = Array.from(e.target.files || [])
   e.target.value = ''
-  if (!f) return
-  if (!/image\/(jpeg|png)/i.test(f.type)) {
-    toast('请选择 JPG / PNG 图片', 'warning')
-    return
-  }
-  const reader = new FileReader()
-  reader.onload = () => {
-    const img = new Image()
-    img.onload = () => {
-      imageEl.value = img
-      imageDataUrl.value = reader.result
-      uploaded.value = true
-      analysis.value = null
-      modeled.value = false
-      stored.value = false
-      disposeViewer()
-      toast('图片采集完成 ✓', 'success')
+  if (!files.length) return
+  const valid = files.filter((f) => /image\/(jpeg|png)/i.test(f.type))
+  if (!valid.length) { toast('请选择 JPG / PNG 图片', 'warning'); return }
+  if (valid.length !== files.length) toast('已忽略非 JPG/PNG 文件', 'warning')
+
+  const loaded = []
+  let done = 0
+  valid.forEach((f) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        loaded.push({ img, dataUrl: reader.result, name: (f.name || '图片').replace(/\.[^.]+$/, '') })
+        done += 1
+        if (done === valid.length) {
+          pendingImages.value = loaded
+          imageEl.value = loaded[0].img
+          imageDataUrl.value = loaded[0].dataUrl
+          uploaded.value = true
+          analysis.value = null
+          modeled.value = false
+          stored.value = false
+          disposeViewer()
+          toast(`图片采集完成 ✓（共 ${loaded.length} 张）`, 'success')
+        }
+      }
+      img.src = reader.result
     }
-    img.src = reader.result
-  }
-  reader.readAsDataURL(f)
+    reader.readAsDataURL(f)
+  })
 }
 
 // ---------- AI 分析 ----------
@@ -454,53 +468,60 @@ async function storeItem() {
   storing.value = true
   toast('入库中…', 'info')
   await delay(1200)
-  const name = matName.value.trim()
+  const baseName = matName.value.trim()
   const cat = matCategory.value
   const typeLabel = analysis.value ? analysis.value.typeLabel : ''
-  const thumbnail = makeThumbnail(imageEl.value)
-  const sizeText = formatFileSize((imageDataUrl.value || '').length * 0.75)
+  const palette = analysis.value ? analysis.value.palette : []
+  const tags = analysis.value ? analysis.value.tags : []
+  const list = pendingImages.value.length ? pendingImages.value : [{ img: imageEl.value, dataUrl: imageDataUrl.value }]
 
-  // 1) 资源库（供首页 / 看板）
-  addToLibrary({
-    name,
-    category: cat,
-    typeLabel,
-    image: imageDataUrl.value,
-    palette: analysis.value ? analysis.value.palette : [],
-    tags: analysis.value ? analysis.value.tags : [],
-    precision: '50%',
-    model: { format: 'GLB/GLTF', faces: 6400, method: '高度场浮雕重建' }
-  })
+  list.forEach((p, i) => {
+    const name = list.length > 1 ? `${baseName} ${i + 1}` : baseName
+    const thumbnail = makeThumbnail(p.img)
+    const sizeText = formatFileSize((p.dataUrl || '').length * 0.75)
 
-  // 2) 三维模型库（供三维模型管理页）
-  addModel({
-    id: '3D-' + Date.now(),
-    name,
-    category: cat,
-    format: '.glb',
-    faces: '6,400',
-    size: sizeText,
-    quality: 85 + Math.floor(Math.random() * 13),
-    status: '处理中',
-    color: catColors[cat] || ['#382b6b', '#865F50'],
-    thumbnail
-  })
+    // 1) 资源库（供首页 / 看板）
+    addToLibrary({
+      name,
+      category: cat,
+      typeLabel,
+      image: p.dataUrl,
+      palette,
+      tags,
+      precision: '50%',
+      model: { format: 'GLB/GLTF', faces: 6400, method: '高度场浮雕重建' }
+    })
 
-  // 3) AR 教学素材库（供 AR 教学数据页）
-  addArMaterial({
-    id: 'AR-' + Date.now(),
-    name,
-    category: cat,
-    arType: '图像识别',
-    target: '1 张',
-    status: '内测中',
-    subject: subjectMap[cat] || typeLabel,
-    thumbnail
+    // 2) 三维模型库（供三维模型管理页）
+    addModel({
+      id: '3D-' + Date.now() + '-' + i,
+      name,
+      category: cat,
+      format: '.glb',
+      faces: '6,400',
+      size: sizeText,
+      quality: 85 + Math.floor(Math.random() * 13),
+      status: '处理中',
+      color: catColors[cat] || ['#382b6b', '#865F50'],
+      thumbnail
+    })
+
+    // 3) AR 教学素材库（供 AR 教学数据页）
+    addArMaterial({
+      id: 'AR-' + Date.now() + '-' + i,
+      name,
+      category: cat,
+      arType: '图像识别',
+      target: '1 张',
+      status: '内测中',
+      subject: subjectMap[cat] || typeLabel,
+      thumbnail
+    })
   })
 
   storing.value = false
   stored.value = true
-  toast('素材与模型已成功入库，可前往三维模型管理、AR教学数据页面查看', 'success')
+  toast(`素材与模型已成功入库（${list.length} 条），可前往三维模型管理、AR教学数据页面查看`, 'success')
 }
 
 // ---------- 应用 ----------
@@ -563,6 +584,9 @@ onBeforeUnmount(() => disposeViewer())
 .dz-hint { font-size: 12px; color: var(--c-ink-light); margin-top: 4px; }
 .uploaded-box { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .uploaded-img { width: 120px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid var(--c-border); }
+.thumb-strip { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.strip-thumb { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; border: 1px solid var(--c-border); }
+.strip-thumb.cur { border: 2px solid var(--c-gold); }
 
 .result-panel { margin-top: 14px; background: rgba(56,43,107,.05); border: 1px solid #e4d6fb; border-radius: 10px; padding: 14px; }
 .result-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
